@@ -4,13 +4,17 @@ import pyautogui
 cap=cv2.VideoCapture(0)
 screen_w,screen_h=pyautogui.size()
 clicked=False
+clickcounter=0
 mp_hands=mp.solutions.hands
 mp_draw=mp.solutions.drawing_utils
 hands=mp_hands.Hands(static_image_mode=False,
                      max_num_hands=1,
-                     min_detection_confidence=0.7,
-                     min_tracking_confidence=0.7
+                     min_detection_confidence=0.4,
+                     min_tracking_confidence=0.4
                      )
+prev_x=0
+prev_y=0
+smoothing=7
 while True:
     succes,frame=cap.read()
     h,w,_=frame.shape
@@ -24,18 +28,25 @@ while True:
         y=int(hand_landmark.landmark[8].y*h)
         screem_x=screen_w/w*x
         screen_y=screen_h/h*y
-        pyautogui.moveTo(screem_x,screen_y)
+        cur_x=prev_x + (screem_x-prev_x)/smoothing
+        cur_y=prev_y + (screen_y-prev_y)/smoothing
+        pyautogui.moveTo(cur_x,cur_y)
+        prev_x=cur_x
+        prev_y=cur_y
         thumb_x=(hand_landmark.landmark[4].x)
         thumb_y=(hand_landmark.landmark[4].y)
         index_x=(hand_landmark.landmark[8].x)
         index_y=(hand_landmark.landmark[8].y)
         distance=((thumb_x-index_x)**2+(thumb_y-index_y)**2)**0.5
-        print(distance)
         if distance <0.08:
             if not clicked:
                 pyautogui.click()
                 print("clicked")
+                clickcounter+=1
                 clicked=True
+            if clickcounter>=2:
+                pyautogui.doubleClick()
+                clickcounter=0
         else:
             clicked=False
     if not succes:
